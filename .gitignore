@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data
+data/
+*.zip
+*.tar.gz
+*.rar
+
+# API Keys and Secrets
+kaggle.json
+secrets.json
+
+# Models (Large binaries)
+results/models/
+*.pkl
+*.h5
+*.joblib
+
+# LaTeX build files
+*.aux
+*.log
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+
+# OS
+.DS_Store
+Thumbs.db

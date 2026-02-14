@@ -1,0 +1,231 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage[final]{microtype}
+\geometry{a4paper, margin=1in}
+
+\title{Beyond Accuracy: A Robustness and Risk-Sensitivity Analysis of Credit Risk Prediction Models under Distribution Shift}
+\author{Karri Siddartha \\ 
+    Gayatri Vidya Parishad College of Engineering \\ 
+    Visakhapatnam, India \\
+    \texttt{siddarthak03@gmail.com}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Machine learning models for credit risk scoring are typically evaluated under the assumption of stationarity. However, real-world lending environments are subject to temporal distribution shifts driven by economic cycles. This study evaluates the robustness of three industry-standard models---Logistic Regression, XGBoost, and LightGBM---trained on Lending Club data from a stable period (2014--2016) and tested on a shifted period (2018--2019). We formally quantify distribution shift using the Population Stability Index (PSI), identifying \texttt{revol\_util} as a primary drift driver (PSI=0.30). Evaluating performance, we observe performance degradation across all models. While gradient boosting methods achieve higher baseline performance, they exhibit similar relative degradation to linear models. Crucially, we quantify the financial impact of this drift, showing that a 10:1 cost-sensitive framework reveals significant economic variances between models. Feature importance analysis (Spearman $\rho > 0.99$) suggests that degradation stems from covariate shift rather than concept drift. Our findings advocate for out-of-time validation and cost-sensitive evaluation as standard governance protocols.
+\end{abstract}
+
+\section{Introduction}
+Credit risk assessment is a cornerstone of financial stability. In recent years, machine learning (ML) models have replaced traditional scorecards due to superior predictive accuracy \cite{khandani2010consumer}. However, the assumption that test data follows the same distribution as training data is often violated in practice. Financial environments are dynamic; macroeconomic shocks alter repayment behaviors, a phenomenon known as \textit{distribution shift}, which can degrade model performance unexpectedly.
+
+\section{Related Work}
+
+\subsection{Credit Risk Modeling}
+
+Credit risk prediction has traditionally relied on logistic regression and scorecard-based approaches \cite{hand2001credit}. With the rise of machine learning, ensemble models such as Random Forest and Gradient Boosting have demonstrated superior predictive performance in credit scoring tasks \cite{lessmann2015benchmarking, chen2016xgboost}. Several studies have shown that tree-based models consistently outperform linear baselines in static evaluation settings \cite{brown2012default}. However, most existing work evaluates performance using random cross-validation, implicitly assuming stationarity between training and testing distributions.
+
+\subsection{Distribution Shift and Concept Drift}
+
+The assumption that training and testing data are identically distributed is often violated in real-world applications. This phenomenon, commonly referred to as dataset shift or covariate shift, has been extensively studied in the machine learning literature \cite{quinonero2009dataset}. In high-stakes domains such as finance, temporal drift can significantly degrade predictive performance \cite{gama2014survey}. Industry practices such as Population Stability Index (PSI) are widely used to monitor feature distribution changes over time \cite{finlay2011credit}. However, relatively few studies systematically combine drift quantification with out-of-time (OOT) robustness evaluation in credit scoring contexts.
+
+\subsection{Cost-Sensitive Learning in Finance}
+
+In financial risk modeling, classification errors have asymmetric costs: false negatives (approving a defaulting borrower) are significantly more expensive than false positives (rejecting a creditworthy borrower). Cost-sensitive learning frameworks have been proposed to incorporate such asymmetries directly into model evaluation \cite{elkan2001foundations, bahnsen2014cost}. While prior work emphasizes cost-based optimization, limited attention has been given to how cost sensitivity interacts with distribution shift and model robustness under temporal drift.
+
+\subsection{Explainability and Model Stability}
+
+Interpretability has become central to financial ML systems due to regulatory requirements. SHAP (SHapley Additive exPlanations) provides consistent feature attribution for complex models \cite{lundberg2017unified}. Recent research has used SHAP to analyze model stability and drift behavior across time \cite{molnar2020interpretable}. However, the relationship between feature importance stability and performance degradation under covariate shift remains underexplored in credit risk settings.
+
+In contrast to prior work, our study jointly evaluates temporal distribution shift, robustness degradation, cost-sensitive performance, and feature importance stability within a unified OOT framework.
+
+\textbf{Contributions}:
+\begin{itemize}
+    \item We quantify temporal distribution shift in credit risk data using PSI and Wasserstein metrics.
+    \item We evaluate robustness using a formal \textit{Robustness Ratio} and statistical confidence intervals.
+    \item We perform rigorous cost-sensitive analysis across multiple risk ratios (5:1 to 20:1).
+    \item We analyze feature importance stability to diagnose whether degradation stems from concept drift or covariate shift.
+\end{itemize}
+
+\section{Datasets \& Problem Setup}
+We use the Lending Club dataset with an Out-of-Time (OOT) splitting strategy:
+\begin{itemize}
+    \item \textbf{In-Distribution (ID)}: Jan 2014 -- Dec 2016 ($N \approx 890k$).
+    \item \textbf{Out-of-Distribution (OOD)}: Jan 2018 -- Dec 2019 ($N \approx 56k$).
+\end{itemize}
+
+\section{Methodology}
+\subsection{Formal Definitions}
+We objectively quantify shift and robustness using the following metrics:
+
+\paragraph{Population Stability Index (PSI)} Measures the change in distribution of a variable:
+\begin{equation}
+PSI = \sum_{i=1}^{B} (P_i - Q_i) \ln \left( \frac{P_i}{Q_i} \right)
+\end{equation}
+where $P_i$ and $Q_i$ are the proportions of samples in bin $i$ for the training and testing populations, respectively.
+
+\paragraph{Robustness Ratio} Quantifies the relative retention of performance:
+\begin{equation}
+\text{Robustness Ratio} = \frac{AUC_{OOD}}{AUC_{ID}}
+\end{equation}
+A ratio closer to 1.0 indicates higher stability.
+
+\paragraph{Financial Cost Function} To reflect the asymmetry of lending errors:
+\begin{equation}
+Cost = r \cdot FN + FP
+\end{equation}
+where $r$ is the cost ratio (e.g., $10:1$) representing principal loss vs. missed interest. Thresholds are optimized on the validation split of the training data to ensure realistic evaluation.
+
+\section{Quantifying Distribution Shift}
+Table \ref{tab:drift} presents the top drifted features. \texttt{revol\_util} shows PSI $> 0.25$, indicating significant shift.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Feature} & \textbf{PSI} & \textbf{Wasserstein Distance} \\
+\midrule
+revol\_util & 0.300 & 0.548 \\
+fico\_range\_low & 0.177 & 0.478 \\
+revol\_bal & 0.087 & 0.098 \\
+int\_rate & 0.078 & 0.174 \\
+\bottomrule
+\end{tabular}
+\caption{Top Drifted Features. The shift in \texttt{revol\_util} suggests changing borrower credit dependence.}
+\label{tab:drift}
+\end{table}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{figures/feature_drift_kde.png}
+    \caption{Distribution shift in top features (e.g., \texttt{revol\_util}) between Training (2014-2016) and OOD Testing (2018-2019) periods.}
+    \label{fig:drift}
+\end{figure}
+
+As shown in Figure \ref{fig:drift}, the density shift in \texttt{revol\_util} confirms the PSI-based findings in Table \ref{tab:drift}.
+
+\section{Experiments \& Results}
+\subsection{Robustness Analysis}
+We computed 95\% Confidence Intervals (CI) for OOD AUC using bootstrapping ($n=1000$).
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model} & \textbf{ID AUC} & \textbf{OOD AUC} & \textbf{95\% CI} & \textbf{Drop} & \textbf{Robustness Ratio} \\
+\midrule
+Logistic Regression & 0.716 & 0.686 & 0.681 -- 0.693 & 0.030 & 0.958 \\
+XGBoost & 0.727 & 0.698 & 0.693 -- 0.704 & 0.029 & 0.960 \\
+LightGBM & 0.724 & 0.699 & 0.692 -- 0.705 & \textbf{0.025} & \textbf{0.965} \\
+\bottomrule
+\end{tabular}
+\caption{Robustness Metrics. LightGBM exhibits the highest Robustness Ratio (0.965), retaining the most predictive power. The overlap in CIs between XGBoost and LightGBM suggests their OOD performance is statistically equivalent.}
+\label{tab:robustness}
+\end{table}
+
+\subsection{Cost-Sensitive Analysis}
+Table \ref{tab:cost} compares realized costs. While LightGBM has the best AUC, XGBoost minimizes cost in moderate risk scenarios.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model} & \textbf{Cost (5:1)} & \textbf{Cost (10:1)} & \textbf{Cost (20:1)} \\
+\midrule
+Logistic Regression & 33,279 & 42,069 & 46,673 \\
+XGBoost & \textbf{32,703} & \textbf{40,990} & 46,133 \\
+LightGBM & 32,706 & 41,098 & \textbf{45,969} \\
+\bottomrule
+\end{tabular}
+\caption{Financial Cost Analysis. Lower is better. Cost metric highlights trade-offs invisible to AUC.}
+\label{tab:cost}
+\end{table}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{figures/cost_curve_10_1.png}
+    \caption{Financial Cost vs. Decision Threshold at a 10:1 Cost Ratio. Lower cost indicates better risk-adjusted performance.}
+    \label{fig:cost}
+\end{figure}
+
+Figure \ref{fig:cost} illustrates how cost varies across decision thresholds, reinforcing that AUC-optimal thresholds are not necessarily cost-optimal.
+
+\subsection{Feature Stability (SHAP)}
+Feature importance stability was evaluated using Spearman's rank correlation ($\rho$) on global mean $|SHAP|$ values. We observe $\rho = 0.999$, indicating that the model's logic remains stable; performance degradation is driven by \textit{Covariate Shift} (change in input distributions like \texttt{revol\_util}) rather than \textit{Concept Drift} (change in the relationship between features and target).
+
+\section{Discussion}
+\paragraph{Regulatory \& Governance Implications}
+The observed degradation (Robustness Ratio $< 0.96$) highlights risks in deployed models. For financial institutions governed by frameworks like SR 11-7 (USA) or Basel III, relying on static validation is insufficient. Our results support mandating periodic OOT testing and setting PSI thresholds (e.g., PSI $> 0.1$) as automated triggers for model retraining or recalibration.
+
+\section{Conclusion}
+We demonstrated that credit risk models degrade under temporal shift. By formalizing this through PSI, Robustness Ratios, and Cost Curves, we show that "high accuracy" is insufficient for safety. We recommend incorporating Robustness Ratios into standard model scorecards.
+
+\begin{thebibliography}{99}
+
+\bibitem{hand2001credit}
+D. J. Hand and W. E. Henley.
+\newblock Statistical classification methods in consumer credit scoring.
+\newblock Journal of the Royal Statistical Society, 2001.
+
+\bibitem{khandani2010consumer}
+A. E. Khandani, A. J. Kim, and A. W. Lo.
+\newblock Consumer credit-risk models via machine-learning algorithms.
+\newblock Journal of Banking \& Finance, 2010.
+
+\bibitem{lessmann2015benchmarking}
+S. Lessmann et al.
+\newblock Benchmarking state-of-the-art classification algorithms for credit scoring.
+\newblock European Journal of Operational Research, 2015.
+
+\bibitem{chen2016xgboost}
+T. Chen and C. Guestrin.
+\newblock XGBoost: A scalable tree boosting system.
+\newblock KDD, 2016.
+
+\bibitem{brown2012default}
+I. Brown and C. Mues.
+\newblock An experimental comparison of classification algorithms for imbalanced credit scoring data sets.
+\newblock Expert Systems with Applications, 2012.
+
+\bibitem{quinonero2009dataset}
+J. Quiñonero-Candela et al.
+\newblock Dataset shift in machine learning.
+\newblock MIT Press, 2009.
+
+\bibitem{gama2014survey}
+J. Gama et al.
+\newblock A survey on concept drift adaptation.
+\newblock ACM Computing Surveys, 2014.
+
+\bibitem{finlay2011credit}
+S. Finlay.
+\newblock Credit scoring, response modeling and insurance rating.
+\newblock Palgrave Macmillan, 2011.
+
+\bibitem{elkan2001foundations}
+C. Elkan.
+\newblock The foundations of cost-sensitive learning.
+\newblock IJCAI, 2001.
+
+\bibitem{bahnsen2014cost}
+A. C. Bahnsen et al.
+\newblock Example-dependent cost-sensitive logistic regression for credit scoring.
+\newblock ICMLA, 2014.
+
+\bibitem{lundberg2017unified}
+S. Lundberg and S. Lee.
+\newblock A unified approach to interpreting model predictions.
+\newblock NeurIPS, 2017.
+
+\bibitem{molnar2020interpretable}
+C. Molnar.
+\newblock Interpretable Machine Learning.
+\newblock 2020.
+
+\end{thebibliography}
+
+\end{document}

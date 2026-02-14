@@ -1,0 +1,4 @@
+Model,Cost_5:1,Cost_10:1,Cost_20:1
+LogisticRegression,33279,42069,46673
+XGBoost,32703,40990,46133
+LightGBM,32706,41098,45969
