@@ -40,8 +40,8 @@ This repository hosts the code and analysis for a research study evaluating how 
 ### Installation
 1.  Clone the repository:
     ```bash
-    git clone https://github.com/yourusername/credit-risk-robustness.git
-    cd credit-risk-robustness
+    git clone https://github.com/SiddarthaKarri/credit-risk-robustness-analysis.git
+    cd credit-risk-robustness-analysis
     ```
 2.  Install dependencies:
     ```bash
@@ -67,7 +67,12 @@ The research workflow is divided into 5 sequential notebooks:
 
 *While LightGBM is the most robust, XGBoost provides the lowest financial loss in a high-risk lending scenario.*
 
-## 📜 Citation
+## View Paper
+```markdown
+[**Click here to view Research Paper**](paper/paper.pdf)
+```
+
+## 📜 Citation  
 If you use this code or analysis, please refer to the paper in the `paper/` directory.
 
 ## 📄 License
