@@ -68,9 +68,7 @@ The research workflow is divided into 5 sequential notebooks:
 *While LightGBM is the most robust, XGBoost provides the lowest financial loss in a high-risk lending scenario.*
 
 ## View Paper
-```markdown
 [**Click here to view Research Paper**](paper/paper.pdf)
-```
 
 ## 📜 Citation  
 If you use this code or analysis, please refer to the paper in the `paper/` directory.
